@@ -23,7 +23,7 @@ mrs = my_tree.add_person({:first_name => "Macielynn", :middle_name => "R", :last
 #9
 eds = my_tree.add_person({:first_name => "Emmalee", :middle_name => "D", :last_name => "Smith", :sex => "F"})
 
-puts my_tree.inspect_people
+puts my_tree.inspect_people()
 puts
 
 puts "Update People"
@@ -31,7 +31,7 @@ my_tree.update_person(tj.person_id, {:father_id => ts.person_id, :mother_id => m
 my_tree.update_person(mkp.person_id, {:father_id => ts.person_id, :mother_id => mks.person_id, :last_name => "(Smith) Paterson"})
 my_tree.update_person(mks.person_id, {:mother_id => rs.person_id})
 my_tree.update_person(wts.person_id, {:sex => "M", :children_ids => [mrs.person_id,eds.person_id]})
-puts my_tree.inspect_people
+puts my_tree.inspect_people([:supress_empty])
 puts
 
 def list_descendants(gen_list)

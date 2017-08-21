@@ -92,8 +92,14 @@ class Tree
 	    end
 	end
 
-	def inspect_people
-		@people.inject("") { | everyone, person | everyone << "#{person.inspect}\n"; everyone }
+	def inspect_people(options=[])
+		@people.inject("") { | everyone, person | 
+			if options.include?(:supress_empty)
+				everyone << "#{person[1].inspect_not_empty}\n"
+			else
+				everyone << "#{person.inspect}\n"
+			end
+			everyone }
 	end
 
 	# Return an array of persons where each element is an array of persons 
@@ -257,9 +263,31 @@ class Person
 	end
 
 	def clone
-		c = super
+		c = self.dup
 		c.children_ids = self.children_ids.dup
 		c
+	end
+
+	def inspect_not_empty
+		self.instance_variables.inject("\n") { | all_vars, var_name |
+			val = self.instance_variable_get(var_name)
+			not_empty = 
+			    case val
+			    when String, Array
+			        !val.empty?
+			    else
+				    !val.nil?
+			    end
+			all_vars << "#{var_name}: #{val}\n" if not_empty
+			all_vars 
+		}
+	end
+
+	def inspect
+		self.instance_variables.inject("\n") { | all_vars, var_name |
+			all_vars << "#{var_name}: #{self.instance_variable_get(var_name)}\n"
+			all_vars 
+		}
 	end
 
 	# title for an ancestor 'generations' away
