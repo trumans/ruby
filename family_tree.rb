@@ -94,8 +94,8 @@ class Tree
 
 	def inspect_people(options=[])
 		@people.inject("") { | everyone, person | 
-			if options.include?(:supress_empty)
-				everyone << "#{person[1].inspect_not_empty}\n"
+			if options.include?(:pretty)
+				everyone << "#{person[1].inspect_pretty(self.people)}\n"
 			else
 				everyone << "#{person.inspect}\n"
 			end
@@ -187,36 +187,52 @@ class Tree
 	end
 
 	def check_parental_integrity
-		def format_issue(person, msg)
-			"person #{person.person_id} " + msg
+		def format_person_id(person)
+			"#{person.alt_id} (id# #{person.person_id})"
 		end
+
 		res = {}  # results to be returned
 		issues = [] # list of issues
 		pc = 0  # count of person records processed
-		@people.each do | key, person |
+		@people.each do | key, p |
 			pc += 1
 			# does mother and father list this person as a child?
-			if person.mother_id and !@people[person.mother_id].children_ids.include?(person.person_id)
-				issues << format_issue(person, "is not in children list for mother id #{person.mother_id}")
+			if p.mother_id 
+				m = @people[p.mother_id]
+			    if !m.children_ids.include?(p.person_id)
+					issues << 
+						format_person_id(p)+
+						" is not on the children list for their mother "+
+						format_person_id(m)
+				end
+				if m.sex == "M"
+					issues <<
+						format_person_id(p)+
+						" has a mother "+ format_person_id(m)+
+						" who is male"
+				end
 			end
-			if person.father_id and !@people[person.father_id].children_ids.include?(person.person_id)
-				issues << format_issue(person, "is not in children list for father id #{person.father_id}")
+			if p.father_id
+				f = @people[p.father_id]
+				if !f.children_ids.include?(p.person_id)
+					issues << 
+						format_person_id(p)+
+						" is not on the children list for their father "+
+						 format_person_id(f)
+				end
+				if f.sex == "F"
+					issues <<
+						format_person_id(p)+
+						" has a father "+ format_person_id(f)+
+						" who is female"
+				end
 			end
 			# does each child list person as a parent?
-			person.children_ids.each do | child_id |
-				if @people.key?(child_id)
-					case person.sex
-					when "M"
-						if @people[child_id].father_id != person.person_id
-							issues << format_issue(person, "is not expected father_id for child #{child_id}")
-						end
-					when "F"
-						if @people[child_id].mother_id != person.person_id
-							issues << format_issue(person, "is not expected mother_id for child #{child_id}")
-						end
-					end
-				else
-					issues << format_issue(person, "has invalid child id #{child_id} in children list")
+			p.children_ids.each do | child_id |
+				if !@people.key?(child_id)
+					issues << 
+						format_person_id(p)+
+					    " has invalid person id #{child_id} in children list"
 				end	
 			end 
 		end
@@ -228,11 +244,12 @@ class Tree
 end
 
 class Person
-	attr_accessor :person_id, :father_id, :mother_id, :prefix, :first_name, 
-	              :middle_name, :last_name, :suffix, :sex, :birth_date, 
-	              :death_date, :children_ids
+	attr_accessor :person_id, :alt_id, :father_id, :mother_id, :prefix, 
+	              :first_name, :middle_name, :last_name, :suffix, 
+	              :sex, :birth_date, :death_date, :children_ids
 	def initialize(person_id, vals)
 		@person_id    = person_id
+		@alt_id       = vals.include?(:alt_id)      ? vals[:alt_id]      : ""
  		@prefix       = vals.include?(:prefix)      ? vals[:prefix]      : "" 
  		@first_name   = vals.include?(:first_name)  ? vals[:first_name]  : "unk" 
  		@middle_name  = vals.include?(:middle_name) ? vals[:middle_name] : ""
@@ -248,6 +265,7 @@ class Person
 
 	def update(vals)
  		@prefix      = vals[:prefix]      if vals.include?(:prefix)
+ 		@alt_id      = vals[:alt_id]      if vals.include?(:alt_id)
  		@first_name  = vals[:first_name]  if vals.include?(:first_name)
  		@middle_name = vals[:middle_name] if vals.include?(:middle_name)
 		@last_name   = vals[:last_name]   if vals.include?(:last_name)
@@ -268,17 +286,44 @@ class Person
 		c
 	end
 
-	def inspect_not_empty
-		self.instance_variables.inject("\n") { | all_vars, var_name |
+	# return true if value is 'empty' according to it's data type
+	def value_empty?(val)
+		case val
+		when String, Array
+		    val.empty?
+		else
+			val.nil?
+		end
+	end
+
+	# pretty format of inspect
+	#   supress empty values
+	#   include alt_id of parent and children
+    # parameter 
+    #   other_people: the 'people' hash containing parent and children of the person object
+	def inspect_pretty(other_people=nil)
+		self.instance_variables.inject("") { | all_vars, var_name |
 			val = self.instance_variable_get(var_name)
-			not_empty = 
-			    case val
-			    when String, Array
-			        !val.empty?
-			    else
-				    !val.nil?
-			    end
-			all_vars << "#{var_name}: #{val}\n" if not_empty
+
+			if !value_empty?(val)
+				# add supplemental info based on instance variable
+				supp_info = ''
+				if other_people
+					case var_name.to_s
+					when '@father_id'
+						supp_info = "(#{other_people[val].alt_id})"
+					when '@mother_id'
+						supp_info = "(#{other_people[val].alt_id})"
+					when '@children_ids'
+						children_alt_ids = 
+							val.inject([]) { |all, child| 
+								all << "#{other_people[child].alt_id}" }
+						supp_info = "(#{children_alt_ids.join(', ')})"
+					end
+				end
+
+				all_vars << "#{var_name}: #{val} #{supp_info}\n"
+			end
 			all_vars 
 		}
 	end
