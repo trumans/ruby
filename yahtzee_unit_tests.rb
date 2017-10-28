@@ -24,9 +24,32 @@ class TestYahtzee < Test::Unit::TestCase
 
 		assert_equal(14, d.score_chance)
 
+
+		d = Roll.new(4,5,4,5,6)
+		assert_equal([0,0,0,0,2,2,1], d.counts)
+
+		assert_equal(0, d.score_upper_category(1))
+		assert_equal(0, d.score_upper_category(2))
+		assert_equal(0, d.score_upper_category(3))
+		assert_equal(8, d.score_upper_category(4))
+		assert_equal(10, d.score_upper_category(5))
+		assert_equal(6, d.score_upper_category(6))
+
+		assert_equal(0, d.score_three_of_a_kind)
+		assert_equal(0, d.score_four_of_a_kind)
+		assert_equal(0, d.score_full_house) 
+		assert_equal(0, d.score_small_straight)
+		assert_equal(0, d.score_large_straight)
+		assert_equal(0, d.score_yahtzee)
+
+		assert_equal(24, d.score_chance)
+
+		# verify lower combinations are identified.
 		# three of a kind
 		d = Roll.new(4,3,3,5,3)
 		assert_equal(18, d.score_three_of_a_kind)
+		d = Roll.new(5,5,2,5,5)
+		assert_equal(22, d.score_three_of_a_kind)
 		d = Roll.new(2,2,2,2,2)
 		assert_equal(10, d.score_three_of_a_kind)
 		# four of a kind
@@ -42,6 +65,8 @@ class TestYahtzee < Test::Unit::TestCase
 		assert_equal(30, d.score_small_straight)
 		d = Roll.new(4,3,6,1,5)
 		assert_equal(30, d.score_small_straight)
+		d = Roll.new(5,3,6,2,4)
+		assert_equal(30, d.score_small_straight)
 		# large straights
 		d = Roll.new(4,3,2,5,6)
 		assert_equal(40, d.score_large_straight)
@@ -56,12 +81,14 @@ class TestYahtzee < Test::Unit::TestCase
 		a = Roll.new
 		puts "Random roll: #{a.dice}"
 		puts "Counts: #{a.counts}"
+		puts ""
 		puts "Ones score: #{a.score_upper_category(1)}"
 		puts "Twos score: #{a.score_upper_category(2)}"
 		puts "Threes score: #{a.score_upper_category(3)}"
 		puts "Fours score: #{a.score_upper_category(4)}"
 		puts "Fives score: #{a.score_upper_category(5)}"
 		puts "Sixes score: #{a.score_upper_category(6)}"
+		puts ""
 		puts "Full house: #{a.score_full_house}"
 		puts "Small straight: #{a.score_small_straight}"
 		puts "Large straight: #{a.score_large_straight}"
@@ -81,18 +108,18 @@ class TestYahtzee < Test::Unit::TestCase
 				eval fcn
 			rescue
 				begin
-					puts " retry 1"
+					puts "#{fcn} retry 1"
 					eval fcn
 				rescue
 					begin
-						puts " retry 2"
+						puts "#{fcn} retry 2"
 						eval fcn
 					rescue
 						begin
-							puts " retry 3"
+							puts "#{fcn} retry 3"
 							eval fcn 
 						rescue
-							puts " retry 4"
+							puts "#{fcn} retry 4"
 							eval fcn
 						end
 					end
@@ -101,49 +128,50 @@ class TestYahtzee < Test::Unit::TestCase
 		}
 	end
 
+	# Reroll tests:
+	#   Roll.new(...) - set the dice roll to known values
+	#   d.reroll([...]) - reroll(change) die/dice with certain values
+	#   assert_equal(...) - verify dice not specified in reroll are not changed
+	#   assert_not_equal(...) - verify the select dice changed, 
+	#     although there's a 1 in 6 change the rerolled returned the same value
+	@@reroll_msg = "Re-run test as re-roll may have returned same value"
 	def execute_reroll_1
-		msg = "Re-run test as re-roll may have returned same value"
-		puts "Execute_reroll_1"
 		d = Roll.new(4,3,2,1,5)
 		assert_equal([0,1,1,1,1,1,0], d.counts)
-		d.reroll([2])
+		d.reroll_values([2]) 
 		assert_equal([4,3], d.dice[0..1])
-		assert_not_equal(2, d.dice[2], msg)
+		assert_not_equal(2, d.dice[2], @@reroll_msg)
 		assert_equal([1,5], d.dice[3..4])
 		assert_not_equal([0,1,1,1,1,1,0], d.counts)
 	end
 
 	def execute_reroll_2
-		msg = "Re-run test as re-roll may have returned same value"
-		puts "Execute_reroll_2"
 		d = Roll.new(4,2,4,1,4)
 		assert_equal([0,1,1,0,3,0,0], d.counts)
-		d.reroll([4,4])
-		assert_not_equal(4, d.dice[0], msg)
+		d.reroll_values([4,4])
+		assert_not_equal(4, d.dice[0], @@reroll_msg)
 		assert_equal(2, d.dice[1])
-		assert_not_equal(4, d.dice[2], msg)
+		assert_not_equal(4, d.dice[2], @@reroll_msg)
 		assert_equal([1,4], d.dice[3..4])
 		assert_not_equal([0,1,1,0,3,0,0], d.counts)
 	end
 
 	def execute_reroll_3
-		msg = "Re-run test as re-roll may have returned same value"
-		puts "Execute_reroll_3"
 		d = Roll.new(4,2,4,1,3)
 		assert_equal([0,1,1,1,2,0,0], d.counts)
-		d.reroll([1,3])
+		d.reroll_values([1,3])
 		assert_equal([4,2,4], d.dice[0..2])
-		assert_not_equal(1, d.dice[3], msg)
-		assert_not_equal(3, d.dice[4], msg)
+		assert_not_equal(1, d.dice[3], @@reroll_msg)
+		assert_not_equal(3, d.dice[4], @@reroll_msg)
 		assert_not_equal([0,1,1,1,2,0,0], d.counts)
 	end
 
-	def test_find_indexes
+	def test_find_positions
 		d = Roll.new(4,3,2,1,5)
-		assert_equal([0], d.find_indexes(4))
-		assert_equal([4], d.find_indexes(5))
+		assert_equal([1], d.find_positions_with_value(4))
+		assert_equal([5], d.find_positions_with_value(5))
 		d = Roll.new(1,3,2,1,1)
-		assert_equal([0,3,4], d.find_indexes(1))
+		assert_equal([1,4,5], d.find_positions_with_value(1))
 	end
 
 	def test_sum_dice
@@ -153,5 +181,18 @@ class TestYahtzee < Test::Unit::TestCase
 		assert_equal(5, d.sum_dice)
 		d = Roll.new(6,6,6,6,6)
 		assert_equal(30, d.sum_dice)
+    end
+
+    def test_best_score
+    	puts "==="
+    	s = ScoreSheet.new
+    	d = Roll.new(1,2,3,4,5)
+    	b = s.find_best_score(d)
+    	puts "==="
+    	s = ScoreSheet.new
+    	s.points[:large_straight] = 99
+    	d = Roll.new(1,2,3,4,5)
+    	b = s.find_best_score(d)
+    	puts "==="
     end
 end
