@@ -184,15 +184,74 @@ class TestYahtzee < Test::Unit::TestCase
     end
 
     def test_best_score
-    	puts "==="
+    	s = ScoreSheet.new
+    	# upper section
+    	s.points[:three_of_a_kind] = 99
+    	s.points[:four_of_a_kind] = 99
+    	s.points[:yahtzee] = 99
+    	s.points[:chance] = 99
+    	# ones
+    	d = Roll.new(1,1,1,2,1)  # 1 x 4
+    	assert_equal([:ones, 4], s.find_best_score(d))
+
+    	# twos
+    	d = Roll.new(2,3,1,2,1)  # 2 x 2
+    	assert_equal([:twos, 4], s.find_best_score(d))
+
+    	# threes
+    	d = Roll.new(1,3,1,2,3)  # 3 x 2
+    	assert_equal([:threes, 6], s.find_best_score(d))
+
+    	# fours
+    	d = Roll.new(1,4,4,2,4)  # 4 x 3
+    	assert_equal([:fours, 12], s.find_best_score(d))
+
+    	# fives
+    	d = Roll.new(5,5,5,5,5) # 5 x 5
+    	assert_equal([:fives, 25], s.find_best_score(d))
+
+    	# sixes
+    	d = Roll.new(6,3,6,6,5) # 6 x 3
+    	assert_equal([:sixes, 18], s.find_best_score(d))
+
+    	# Lower section
+    	# three of a kind
+    	s = ScoreSheet.new
+    	d = Roll.new(6,5,6,5,6) # three of a kind that's better than full house
+    	assert_equal([:three_of_a_kind, 28], s.find_best_score(d))
+
+    	# four of a kind
+    	s = ScoreSheet.new
+    	s.points[:three_of_a_kind] = 99
+    	d = Roll.new(6,6,6,5,6)
+    	assert_equal([:four_of_a_kind, 29], s.find_best_score(d))
+
+    	# full house
+    	s = ScoreSheet.new
+    	d = Roll.new(3,3,5,5,3)
+    	assert_equal([:full_house, 25], s.find_best_score(d))
+	   	d = Roll.new(1,6,6,6,1)
+    	assert_equal([:full_house, 25], s.find_best_score(d))
+
+    	# small straight
+    	s = ScoreSheet.new
+    	d = Roll.new(1,2,6,3,4)
+    	assert_equal([:small_straight, 30], s.find_best_score(d))
+    	s.points[:large_straight] = 0  # zero out large straight
+    	d = Roll.new(1,2,3,4,5)
+    	assert_equal([:small_straight, 30], s.find_best_score(d))
+
+    	# large straight
     	s = ScoreSheet.new
     	d = Roll.new(1,2,3,4,5)
-    	b = s.find_best_score(d)
-    	puts "==="
+    	assert_equal([:large_straight, 40], s.find_best_score(d))
+
+    	# yahtzee
     	s = ScoreSheet.new
-    	s.points[:large_straight] = 99
-    	d = Roll.new(1,2,3,4,5)
-    	b = s.find_best_score(d)
-    	puts "==="
+    	d = Roll.new(6,6,6,6,6)
+    	assert_equal([:yahtzee, 50], s.find_best_score(d))
+    	d = Roll.new(1,1,1,1,1)
+    	assert_equal([:yahtzee, 50], s.find_best_score(d))
+
     end
 end

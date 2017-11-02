@@ -4,6 +4,8 @@
 #   Finish find_best_score to return the single best score from values 
 #   Create unit tests to verify find_best_score for all categories.
 #
+#   Refactor to return multiple euqal "best scores", including chance
+#     or do we want to rank all scores
 #   Create method to update score sheet with a roll
 #   Create method to print score sheet.  
 #     Calc bonus on upper section
@@ -14,14 +16,14 @@ class ScoreSheet
 	attr_accessor :points, :scorers
 	def initialize()
         @points = { 
-            ones: nil, twos: nil, three: nil, fours: nil, fives: nil, sixes: nil,
+            ones: nil, twos: nil, threes: nil, fours: nil, fives: nil, sixes: nil,
             three_of_a_kind: nil, four_of_a_kind: nil, full_house: nil, 
             small_straight: nil, large_straight: nil, yahtzee: nil, chance: nil 
         }
         @scorers = { 
             ones: "score_upper_category(1)", 
             twos: "score_upper_category(2)", 
-            three: "score_upper_category(3)", 
+            threes: "score_upper_category(3)", 
             fours: "score_upper_category(4)", 
             fives: "score_upper_category(5)", 
             sixes: "score_upper_category(6)",
@@ -38,15 +40,20 @@ class ScoreSheet
     # Find the best score based on open categories
     #   roll: a dice roll, object type Roll
     def find_best_score(roll)
+        debug = false
         scores = {}
+        best_score = nil
+        puts("roll is #{roll.dice}") if debug
         @points.each { |key, value| 
             if value == nil
                 v = (eval "roll."+@scorers[key])
-                puts "key #{key} scores #{v}"
-                scores[key] = v
+                puts("key #{key} scores #{v}") if debug
+                scores[key] = v 
+                best_score = [key, v] if (best_score == nil) or (v > best_score[1])
             end
         }
-        puts "best score for dice #{roll.dice} is #{scores.inspect}"
+        puts("best score is #{best_score}") if debug
+        best_score
     end
 end
 
